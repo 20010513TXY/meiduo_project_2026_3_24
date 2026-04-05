@@ -32,13 +32,15 @@ from django.http import HttpResponse
 
 # 注册转换器
 from django.urls import register_converter
-from utils.converters import UsernameConverter, MobileConverter
+from utils.converters import UsernameConverter, MobileConverter, UUIDConverter
 register_converter(UsernameConverter, "username")
 register_converter(MobileConverter, "mobile")
+register_converter(UUIDConverter, "uuid")
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     # path("log/",log),
     path("",include("apps.users.urls")),
+    path("",include("apps.verifications.urls")),
 ]
