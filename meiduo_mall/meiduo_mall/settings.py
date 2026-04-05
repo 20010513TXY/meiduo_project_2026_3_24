@@ -195,3 +195,11 @@ LOGGING = {
         },
     }
 }
+
+# ... 指定用户模型 ...
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+AUTH_USER_MODEL = 'users.User'
+
+
