@@ -32,8 +32,9 @@ from django.http import HttpResponse
 
 # 注册转换器
 from django.urls import register_converter
-from utils.converters import UsernameConverter
+from utils.converters import UsernameConverter, MobileConverter
 register_converter(UsernameConverter, "username")
+register_converter(MobileConverter, "mobile")
 
 
 urlpatterns = [
