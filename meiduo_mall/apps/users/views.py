@@ -38,6 +38,7 @@ class RegisterView(View):
         sms_code = json_dict.get('sms_code')
         allow = json_dict.get('allow')
 
+
         # 3、验证数据
         # 3.1 用户名 · 密码 · 确认密码 · 手机号 · 同意协议 不能缺失
         if not all([username,password,password2,mobile,allow]):
