@@ -75,7 +75,7 @@ var vm = new Vue({
         },
         check_pwd: function () {
             var len = this.password.length;
-            if (len < 8 || len > 20) {
+            if (len < 3 || len > 20) {
                 this.error_password = true;
             } else {
                 this.error_password = false;

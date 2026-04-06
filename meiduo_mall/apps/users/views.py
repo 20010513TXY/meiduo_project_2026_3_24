@@ -48,7 +48,7 @@ class RegisterView(View):
         if not re.match(r'^[a-zA-Z0-9_-]{5,20}$',username):
             return JsonResponse({'code':400,'errmsg':'用户名格式错误'})
         # 3.3 密码要满足规则
-        if not re.match(r'^[0-9A-Za-z]{8,20}$',password):
+        if not re.match(r'^[0-9A-Za-z]{3,20}$',password):
             return JsonResponse({'code':400,'errmsg':'密码格式错误'})
         # 3.4 密码和确认密码要一致
         if password != password2:

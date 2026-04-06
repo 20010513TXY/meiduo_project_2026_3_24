@@ -9,6 +9,8 @@ from django_redis import get_redis_connection
 
 from libs.yuntongxun.sms import CCP
 
+from celery_tasks.sms.tasks import send_sms_code
+
 
 # Create your views here.
 class ImageCodeView(View):
@@ -62,9 +64,11 @@ class SMSCodeView(View):
         pl = redis_conn.pipeline()
         pl.setex('sms_%s'%mobile,300,sms_code)
         pl.setex('send_flag_%s'%mobile,60,1)
+        pl.execute()
         # redis_conn.setex('sms_%s'%mobile,300,sms_code)
         # redis_conn.setex('send_flag_%s'%mobile,60,1)
         # 6、发送短信验证码
-        CCP().send_template_sms(mobile,[sms_code,5],1)
+        # CCP().send_template_sms(mobile,[sms_code,5],1)
+        send_sms_code.delay(mobile,sms_code)
         # 7、响应结果
         return JsonResponse({'code':0,'errmsg':'ok'})

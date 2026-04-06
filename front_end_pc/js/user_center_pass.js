@@ -68,7 +68,7 @@ var vm = new Vue({
         ,
 // 检查当前密码是否正确
         check_opwd: function () {
-            var re = /^[0-9A-Za-z]{8,20}$/;
+            var re = /^[0-9A-Za-z]{3,20}$/;
             if (re.test(this.old_pwd)) {
                 this.error_opwd = false;
             } else {
@@ -77,7 +77,7 @@ var vm = new Vue({
         }
         ,
         check_pwd: function () {
-            var re = /^[0-9A-Za-z]{8,20}$/;
+            var re = /^[0-9A-Za-z]{3,20}$/;
             if (re.test(this.new_pwd)) {
                 this.error_pwd = false;
             } else {
