@@ -54,6 +54,7 @@ class SMSCodeView(View):
         # 4、生成短信验证码
         sms_code = '%06d'%random.randint(0,999999)
         # 5、保存短信验证码
+        redis_conn = get_redis_connection('verify_code')
         redis_conn.setex('sms_%s'%mobile,300,sms_code)
         # 6、发送短信验证码
         CCP().send_template_sms(mobile,[sms_code,5],1)

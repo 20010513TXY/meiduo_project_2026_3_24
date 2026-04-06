@@ -5,6 +5,8 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.views import View
+from django_redis import get_redis_connection
+
 from .models import User
 from django.http import JsonResponse
 
@@ -38,10 +40,9 @@ class RegisterView(View):
         sms_code = json_dict.get('sms_code')
         allow = json_dict.get('allow')
 
-
         # 3、验证数据
         # 3.1 用户名 · 密码 · 确认密码 · 手机号 · 同意协议 不能缺失
-        if not all([username,password,password2,mobile,allow]):
+        if not all([username,password,password2,mobile,sms_code,allow]):
             return JsonResponse({'code':400,'errmsg':'缺少必要参数'})
         # 3.2 用户名满足规则，且不能重复
         if not re.match(r'^[a-zA-Z0-9_-]{5,20}$',username):
@@ -55,7 +56,15 @@ class RegisterView(View):
         # 3.5 手机号满足规则，且不能重复
         if not re.match(r'^1[3-9]\d{9}$',mobile):
             return JsonResponse({'code':400,'errmsg':'手机号格式错误'})
-        # 3.6 同意协议
+        # 3.6 短信验证码 要和redis中保存的验证码一致
+        redis_conn = get_redis_connection('verify_code')
+        sms_code_server = redis_conn.get('sms_%s'%mobile)
+        if sms_code_server is None:
+            return JsonResponse({'code':400,'errmsg':'短信验证码已过期'})
+        if sms_code != sms_code_server.decode():
+            return JsonResponse({'code':400,'errmsg':'短信验证码错误'})
+
+        # 3.7 同意协议
         if allow != True:
             return JsonResponse({'code':400,'errmsg':'请勾选协议'})
         # 4、存入数据库
