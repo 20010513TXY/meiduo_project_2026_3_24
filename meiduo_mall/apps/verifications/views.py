@@ -51,11 +51,19 @@ class SMSCodeView(View):
         if image_code_client.lower() != image_code_server.lower():
             return JsonResponse({'code':400,'errmsg':'图片验证码错误'})
 
+        redis_conn = get_redis_connection('verify_code')
+        if redis_conn.get('send_flag_%s'%mobile):
+            return JsonResponse({'code':400,'errmsg':'发送短信过于频繁'})
+
         # 4、生成短信验证码
         sms_code = '%06d'%random.randint(0,999999)
         # 5、保存短信验证码
-        redis_conn = get_redis_connection('verify_code')
-        redis_conn.setex('sms_%s'%mobile,300,sms_code)
+        # 管道：一次发送多个命令，减少网络请求次数
+        pl = redis_conn.pipeline()
+        pl.setex('sms_%s'%mobile,300,sms_code)
+        pl.setex('send_flag_%s'%mobile,60,1)
+        # redis_conn.setex('sms_%s'%mobile,300,sms_code)
+        # redis_conn.setex('send_flag_%s'%mobile,60,1)
         # 6、发送短信验证码
         CCP().send_template_sms(mobile,[sms_code,5],1)
         # 7、响应结果

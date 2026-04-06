@@ -58,6 +58,8 @@ class RegisterView(View):
             return JsonResponse({'code':400,'errmsg':'手机号格式错误'})
         # 3.6 短信验证码 要和redis中保存的验证码一致
         redis_conn = get_redis_connection('verify_code')
+
+
         sms_code_server = redis_conn.get('sms_%s'%mobile)
         if sms_code_server is None:
             return JsonResponse({'code':400,'errmsg':'短信验证码已过期'})
