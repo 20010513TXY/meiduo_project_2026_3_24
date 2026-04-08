@@ -15,11 +15,23 @@ var vm = new Vue({
         // 获取购物车数据
         // this.get_carts();
 
+        var url_username = get_query_string('username');
+        console.log("URL中的username参数：", url_username);
+        console.log("Cookie中的username参数：", document.cookie)
+
+        if (url_username) {
+            this.username = url_username;
+            document.cookie = 'username=' + url_username + ';max-age=' + (15*24*3600) + ';path=/';
+            console.log("已从URL参数中设置cookie")
+        }else {
+            this.username = getCookie('username');
+            console.log("已从Cookie中获取username", this.username)
+        }
          // 获取cookie中的用户名
-    	this.username = getCookie('username');
-
-
-        this.get_cart()
+    	// this.username = getCookie('username');
+        //
+        //
+        // this.get_cart()
     },
     methods: {
         // get_category_data:function(){

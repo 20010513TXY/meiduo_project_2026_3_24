@@ -55,14 +55,15 @@ var vm = new Vue({
                     // crossDomain: true
                 })
                     .then(response => {
-
                         if (response.data.code == 0) {
                             // 跳转页面
                             var return_url = this.get_query_string('next');
                             if (!return_url) {
                                 return_url = '/index.html';
                             }
-                            location.href = return_url;
+                            var separator = return_url.indexOf('?') == -1 ? '?' : '&';
+                            location.href = return_url + separator + 'username=' + encodeURIComponent(this.username);
+                            // location.href = return_url;
                         } else if (response.data.code == 400) {
                             this.error_pwd_message = '用户名或密码错误';
                              this.error_pwd = true;

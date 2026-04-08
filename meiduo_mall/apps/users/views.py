@@ -1,6 +1,7 @@
 import json
 import re
 
+from django.contrib.auth import authenticate, login
 from django.shortcuts import render
 
 # Create your views here.
@@ -80,4 +81,52 @@ class RegisterView(View):
         login(request,user)
 
         # 5、返回响应
-        return JsonResponse({'code': 0, 'errmsg': '注册成功'})
+        response = JsonResponse({'code': 0, 'errmsg': '注册成功'})
+        response.set_cookie('username', user.username, max_age=15*24*3600, path='/')
+        return response
+
+
+class LoginView(View):
+    """用户登录"""
+    def post(self,request):
+
+        request_data = request.body
+        json_dict = json.loads(request_data.decode())
+        username = json_dict.get('username')
+        password = json_dict.get('password')
+        remember = json_dict.get('remember')
+        if not all([username,password]):
+            return JsonResponse({'code':400,'errmsg':'缺少必要参数'})
+
+        # 根据输入格式动态切换登录字段：
+        # 如果输入的是手机号格式，就让 authenticate() 用手机号字段查询用户；否则用用户名字段查询。
+        # 这样实现了同时支持用户名和手机号两种方式登录。
+        # User.USERNAME_FIELD 告诉 Django 用哪个字段作为"用户名"来查询。
+        # 输入 13812345678 → 设置 USERNAME_FIELD = 'mobile' → authenticate() 实际执行 User.objects.get(mobile='13812345678')
+        # 输入 zhangsan → 设置 USERNAME_FIELD = 'username' → authenticate() 实际执行 User.objects.get(username='zhangsan')
+        # 所以虽然代码都写的是 authenticate(username=xxx)，但实际查询的字段会根据 USERNAME_FIELD 动态变化。
+        if re.match(r'^1[3-9]\d{9}$',username):
+            User.USERNAME_FIELD = 'mobile'
+        else:
+            User.USERNAME_FIELD = 'username'
+
+        # authenticate() 是 Django 封装的认证方法，内部自动从数据库查询用户并验证加密密码。
+        # 比手动查询更安全简洁，避免了直接处理密码哈希的复杂性和风险。
+        user = authenticate(username=username,password=password)
+        if user is None:
+            return JsonResponse({'code':400,'errmsg':'用户名或密码错误'})
+        # login(request, user) 会在服务器创建 session 并在浏览器设置 cookie，记录用户已登录状态。
+        # 之后 Django 能通过 session 自动识别用户，无需重复输入密码。
+        login(request,user)
+        # 控制登录状态的有效期：
+        # set_expiry(None) 表示 session 长期有效（默认2周），实现"记住我"功能
+        # set_expiry(0) 表示关闭浏览器后 session 立即失效
+        if remember:
+            request.session.set_expiry(None)
+        else:
+            request.session.set_expiry(0)
+
+        response = JsonResponse({'code':0,'errmsg':'登录成功'})
+        # 用户名写入cookie，有效期15天
+        response.set_cookie('username',user.username,max_age=15*24*3600, path='/',samesite='None',secure=False)
+        return response
