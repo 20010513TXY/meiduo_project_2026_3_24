@@ -1,7 +1,8 @@
 import json
 import re
 
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
 
 # Create your views here.
@@ -10,6 +11,8 @@ from django_redis import get_redis_connection
 
 from .models import User
 from django.http import JsonResponse
+
+from utils.views import LoginRequiredJSONMixin
 
 
 class UsernameCountView(View):
@@ -89,7 +92,6 @@ class RegisterView(View):
 class LoginView(View):
     """用户登录"""
     def post(self,request):
-
         request_data = request.body
         json_dict = json.loads(request_data.decode())
         username = json_dict.get('username')
@@ -130,3 +132,17 @@ class LoginView(View):
         # 用户名写入cookie，有效期15天
         response.set_cookie('username',user.username,max_age=15*24*3600, path='/',samesite='None',secure=False)
         return response
+
+class LogoutView(View):
+    """用户登出"""
+    def delete(self,request):
+        """清空session"""
+        logout(request)
+        response = JsonResponse({'code':0,'errmsg':'退出登录成功'})
+        response.delete_cookie('username')
+        return response
+
+class UserInfoView(LoginRequiredJSONMixin, View):
+    """用户信息"""
+    def get(self,request):
+        pass
