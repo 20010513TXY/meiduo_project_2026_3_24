@@ -49,7 +49,13 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     # "django.middleware.csrf.CsrfViewMiddleware",
+    # ------------------------------------------------
+    # 这个 AuthenticationMiddleware 中间件会在每个请求处理之前自动执行，它的工作是：
+    # 从浏览器的 cookie 中读取 sessionid
+    # 根据 sessionid 从 Redis session 中查找对应的用户
+    # 将找到的用户对象赋值给 request.user
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # -----------------------------------------------
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

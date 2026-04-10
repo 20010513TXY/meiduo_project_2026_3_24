@@ -1,6 +1,7 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 
-class LoginRequiredJSONMixin(object):
+class LoginRequiredJSONMixin(LoginRequiredMixin):
     """
     JSON格式数据，登录验证
     """
