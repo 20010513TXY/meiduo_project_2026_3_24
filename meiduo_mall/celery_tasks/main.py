@@ -7,4 +7,4 @@ celery_app = Celery('celery_tasks')
 # celery 配置
 celery_app.config_from_object('celery_tasks.config')
 # celery 自动注册任务
-celery_app.autodiscover_tasks(['celery_tasks.sms'])
+celery_app.autodiscover_tasks(['celery_tasks.email', 'celery_tasks.sms'])

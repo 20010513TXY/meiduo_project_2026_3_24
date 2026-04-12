@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 
 from django.contrib.auth import authenticate, login, logout
@@ -13,6 +14,8 @@ from .models import User
 from django.http import JsonResponse
 
 from utils.views import LoginRequiredJSONMixin
+
+from celery_tasks.email.tasks import send_verify_email
 
 
 class UsernameCountView(View):
@@ -154,3 +157,67 @@ class UserInfoView(LoginRequiredJSONMixin, View):
 
         return JsonResponse({'code':0,'errmsg':'OK','info_data':info_data})
 
+class EmailView(View):
+    """保存邮箱"""
+    def put(self,request):
+        json_dict = json.loads(request.body.decode())
+        email = json_dict.get('email')
+        if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$',email):
+            return JsonResponse({'code':400,'errmsg':'邮箱格式错误'})
+
+        # User.objects.filter(id=request.user.id).update(email=email)
+        # User.objects.filter(id=request.user.id).update(email_active=True)
+
+        try:
+            request.user.email = email
+            request.user.save()
+        except Exception as e:
+            logging.info(e)
+            return JsonResponse({'code':400,'errmsg':'保存邮箱失败'})
+
+
+
+        from meiduo_mall import settings
+        from apps.users.utils import generate_email_verify_url
+        subject = '美多商城邮箱验证'
+        message = ''
+        from_email = settings.EMAIL_FROM
+        recipient_list = [email]
+
+        token = generate_email_verify_url(request.user.id)
+
+        verify_url = "http://www.meiduo.site:8080/success_verify_email.html?token=%s"%token
+        html_message = '<p>尊敬的用户您好！</p>' \
+                       '<p>感谢您使用美多商城。</p>' \
+                       '<p>您的邮箱为：%s 。请点击此链接激活您的邮箱：</p>' \
+                       '<p><a href="%s">%s<a></p>' % (email, verify_url, verify_url)
+
+        send_verify_email.delay(subject, message, from_email, recipient_list, html_message)
+
+        return JsonResponse({'code':0,'errmsg':'OK'})
+
+class VerifyEmailView(View):
+    """验证邮箱"""
+    def put(self,request):
+        token = request.GET.get('token')
+        if not token:
+            return JsonResponse({'code':400,'errmsg':'缺少token'})
+
+        from apps.users.utils import check_email_verify_url
+        user = check_email_verify_url(token)
+        if user is None:
+            return JsonResponse({'code':400,'errmsg':'链接信息无效'})
+
+        try:
+            user = User.objects.get(id=user.id)
+        except Exception as e:
+            logging.info(e)
+            return JsonResponse({'code':400,'errmsg':'用户信息获取失败'})
+
+        try:
+            user.email_active = True
+            user.save()
+            return JsonResponse({'code':0,'errmsg':'OK'})
+        except Exception as e:
+            logging.info(e)
+            return JsonResponse({'code':400,'errmsg':'激活失败'})
