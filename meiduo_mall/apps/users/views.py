@@ -10,13 +10,17 @@ from django.shortcuts import render
 from django.views import View
 from django_redis import get_redis_connection
 
-from .models import User
+from .models import User, Address
+
 from django.http import JsonResponse
 
 from utils.views import LoginRequiredJSONMixin
 
 from celery_tasks.email.tasks import send_verify_email
+from apps.users.utils import check_email_verify_url
 
+from meiduo_mall import settings
+from apps.users.utils import generate_email_verify_url
 
 class UsernameCountView(View):
     # 用户名数量
@@ -175,10 +179,6 @@ class EmailView(View):
             logging.info(e)
             return JsonResponse({'code':400,'errmsg':'保存邮箱失败'})
 
-
-
-        from meiduo_mall import settings
-        from apps.users.utils import generate_email_verify_url
         subject = '美多商城邮箱验证'
         message = ''
         from_email = settings.EMAIL_FROM
@@ -203,7 +203,7 @@ class VerifyEmailView(View):
         if not token:
             return JsonResponse({'code':400,'errmsg':'缺少token'})
 
-        from apps.users.utils import check_email_verify_url
+
         user = check_email_verify_url(token)
         if user is None:
             return JsonResponse({'code':400,'errmsg':'链接信息无效'})
@@ -221,3 +221,73 @@ class VerifyEmailView(View):
         except Exception as e:
             logging.info(e)
             return JsonResponse({'code':400,'errmsg':'激活失败'})
+
+
+class CreateAddressView(LoginRequiredJSONMixin, View):
+    # LoginRequiredJSONMixin 是一个登录验证mixin，用于确保只有已登录用户才能访问该视图。
+    """用户新增地址"""
+    def post(self, request):
+        count = request.user.addresses.count()
+        if count >= 20:
+            return JsonResponse({'code':400,'errmsg':'超过地址数量上限'})
+
+        json_dict = json.loads(request.body.decode())
+        receiver = json_dict.get('receiver')
+        province_id = json_dict.get('province_id')
+        city_id = json_dict.get('city_id')
+        district_id = json_dict.get('district_id')
+        place = json_dict.get('place')
+        mobile = json_dict.get('mobile')
+        tel = json_dict.get('tel')
+        email = json_dict.get('email')
+
+        # tel 和 email 可选
+        if not all([receiver, province_id, city_id, district_id, place, mobile]):
+            return JsonResponse({'code':400,'errmsg':'缺少必传参数'})
+        if not re.match(r'^1[3-9]\d{9}$',mobile):
+            return JsonResponse({'code':400,'errmsg':'参数mobile有误'})
+        if tel:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$',tel):
+                return JsonResponse({'code':400,'errmsg':'参数tel有误'})
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$',email):
+                return JsonResponse({'code':400,'errmsg':'参数email有误'})
+
+        try:
+            address = Address.objects.create(
+                user=request.user,
+                title=receiver,
+                receiver=receiver,
+                province_id=province_id,
+                city_id=city_id,
+                district_id=district_id,
+                place=place,
+                mobile=mobile,
+                tel=tel,
+                email=email
+            )
+
+            if not request.user.default_address:
+                request.user.default_address = address
+                request.user.save()
+
+        except Exception as e:
+            logging.info(e)
+            return JsonResponse({'code':400,'errmsg':'新增地址失败'})
+
+        address_dict = {
+            'id': address.id,
+            'title': address.title,
+            'receiver': address.receiver,
+            'province': address.province.name,
+            'city': address.city.name,
+            'district': address.district.name,
+            'place': address.place,
+            'mobile': address.mobile,
+            'tel': address.tel,
+            'email': address.email
+        }
+
+        return JsonResponse({'code':0,'errmsg':'新增地址成功','address':address_dict})
+
+
