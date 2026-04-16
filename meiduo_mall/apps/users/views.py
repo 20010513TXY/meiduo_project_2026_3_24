@@ -291,3 +291,32 @@ class CreateAddressView(LoginRequiredJSONMixin, View):
         return JsonResponse({'code':0,'errmsg':'新增地址成功','address':address_dict})
 
 
+class AddressView(LoginRequiredJSONMixin, View):
+    """查看用户收货地址"""
+    def get(self, request):
+        addresses = request.user.addresses.filter(is_deleted=False)
+        address_list = []
+        for address in addresses:
+            address_dict = {
+                'id': address.id,
+                'title': address.title,
+                'receiver': address.receiver,
+                'province': address.province.name,
+                'city': address.city.name,
+                'district': address.district.name,
+                'place': address.place,
+                'mobile': address.mobile,
+                'tel': address.tel,
+                'email': address.email
+            }
+
+            default_address = request.user.default_address
+            if default_address.id == address.id:
+                address_list.insert(0, address_dict)
+            else:
+                address_list.append(address_dict)
+
+        default_address_id = request.user.default_address_id
+        return JsonResponse({'code':0,'errmsg':'OK','addresses':address_list,'default_address_id':default_address_id})
+
+

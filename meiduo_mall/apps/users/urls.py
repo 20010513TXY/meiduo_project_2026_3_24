@@ -1,7 +1,7 @@
 from django.urls import path
 from apps.users.views import (UsernameCountView, MobileCountView, RegisterView,
                               LoginView, LogoutView, UserInfoView, EmailView,
-                              VerifyEmailView, CreateAddressView)
+                              VerifyEmailView, CreateAddressView, AddressView)
 
 urlpatterns = [
     path('usernames/<username:username>/count/',UsernameCountView.as_view()),
@@ -13,5 +13,6 @@ urlpatterns = [
     path('emails/',EmailView.as_view()),
     path('emails/verification/',VerifyEmailView.as_view()),
     path('addresses/create/',CreateAddressView.as_view()),
+    path('addresses/',AddressView.as_view()),
 ]
 
