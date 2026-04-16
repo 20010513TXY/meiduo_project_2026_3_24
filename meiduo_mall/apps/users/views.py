@@ -321,7 +321,7 @@ class AddressView(LoginRequiredJSONMixin, View):
 
 
 class UpdateAddressView(LoginRequiredJSONMixin, View):
-    """更新用户收货地址"""
+    """更新和删除用户收货地址"""
     def put(self, request, address_id):
         json_dict = json.loads(request.body.decode())
         receiver = json_dict.get('receiver')
@@ -376,3 +376,22 @@ class UpdateAddressView(LoginRequiredJSONMixin, View):
             'email': address.email
         }
         return JsonResponse({'code':0,'errmsg':'更新地址成功','address':address_dict})
+
+    def delete(self, request, address_id):
+        # 先判断地址是不是默认地址，如果是默认地址，先将默认地址改为None，再删除地址；如果不是默认地址，直接删除地址
+        try:
+            address = Address.objects.get(id=address_id, user=request.user, is_deleted=False)
+        except Address.DoesNotExist:
+            return JsonResponse({'code': 400, 'errmsg': '地址不存在或无权限删除'})
+
+        # 如果删除的是默认地址，清空用户的默认地址设置
+        if request.user.default_address_id == address_id:
+            request.user.default_address = None
+            request.user.save()
+
+        # 逻辑删除
+        address.is_deleted = True
+        address.save(update_fields=['is_deleted'])
+
+        return JsonResponse({'code': 0, 'errmsg': '删除地址成功'})
+
